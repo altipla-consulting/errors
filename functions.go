@@ -94,28 +94,6 @@ func Annotatef(other error, format string, args ...interface{}) error {
 	return err
 }
 
-// DeferredAnnotatef annotates the given error (when it is not nil) with the given
-// format string and arguments (like fmt.Sprintf). If *err is nil, DeferredAnnotatef
-// does nothing. This method is used in a defer statement in order to annotate any
-// resulting error with the same message.
-//
-// For example:
-//
-//    defer DeferredAnnotatef(&err, "failed to frombulate the %s", arg)
-//
-func DeferredAnnotatef(err *error, format string, args ...interface{}) {
-	if *err == nil {
-		return
-	}
-	newErr := &Err{
-		message:  fmt.Sprintf(format, args...),
-		cause:    Cause(*err),
-		previous: *err,
-	}
-	newErr.SetLocation(1)
-	*err = newErr
-}
-
 // Wrap changes the Cause of the error. The location of the Wrap call is also
 // stored in the error stack.
 //

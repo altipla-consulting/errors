@@ -31,50 +31,6 @@ type Err struct {
 	line int
 }
 
-// NewErr is used to return an Err for the purpose of embedding in other
-// structures.  The location is not specified, and needs to be set with a call
-// to SetLocation.
-//
-// For example:
-//     type FooError struct {
-//         errors.Err
-//         code int
-//     }
-//
-//     func NewFooError(code int) error {
-//         err := &FooError{errors.NewErr("foo"), code}
-//         err.SetLocation(1)
-//         return err
-//     }
-func NewErr(format string, args ...interface{}) Err {
-	return Err{
-		message: fmt.Sprintf(format, args...),
-	}
-}
-
-// NewErrWithCause is used to return an Err with cause by other error for the purpose of embedding in other
-// structures. The location is not specified, and needs to be set with a call
-// to SetLocation.
-//
-// For example:
-//     type FooError struct {
-//         errors.Err
-//         code int
-//     }
-//
-//     func (e *FooError) Annotate(format string, args ...interface{}) error {
-//         err := &FooError{errors.NewErrWithCause(e.Err, format, args...), e.code}
-//         err.SetLocation(1)
-//         return err
-//     })
-func NewErrWithCause(other error, format string, args ...interface{}) Err {
-	return Err{
-		message:  fmt.Sprintf(format, args...),
-		cause:    Cause(other),
-		previous: other,
-	}
-}
-
 // Location is the file and line of where the error was most recently
 // created or annotated.
 func (e *Err) Location() (filename string, line int) {
