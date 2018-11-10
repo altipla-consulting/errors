@@ -6,6 +6,8 @@ package errors
 import (
 	"fmt"
 	"strings"
+
+	"google.golang.org/grpc/status"
 )
 
 // New is a drop in replacement for the standard library errors module that records
@@ -45,6 +47,11 @@ func Trace(other error) error {
 	if other == nil {
 		return nil
 	}
+
+	if _, ok := status.FromError(other); ok {
+		return other
+	}
+
 	err := &Err{previous: other, cause: Cause(other)}
 	err.SetLocation(1)
 	return err
