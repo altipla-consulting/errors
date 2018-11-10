@@ -4,7 +4,9 @@
 [![GoDoc](https://godoc.org/github.com/altipla-consulting/errors?status.svg)](https://godoc.org/github.com/altipla-consulting/errors)
 [![Build Status](https://travis-ci.org/altipla-consulting/errors.svg?branch=master)](https://travis-ci.org/altipla-consulting/errors)
 
-Helper to initialize errors & applications.
+Custom library to annotate errors. Based on juju/errors.
+
+> **WARNING:** We recommend using [juju/errors](https://github.com/juju/errors) instead. This version is modified to contain the subset of the features we need and will not be useful for the general public.
 
 
 ### Install
