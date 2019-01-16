@@ -34,6 +34,10 @@ func Errorf(format string, args ...interface{}) error {
 	return err
 }
 
+type altiplaDoNotWrapper interface {
+	AltiplaDoNotWrap()
+}
+
 // Trace adds the location of the Trace call to the stack.  The Cause of the
 // resulting error is the same as the error parameter.  If the other error is
 // nil, the result will be nil.
@@ -49,6 +53,9 @@ func Trace(other error) error {
 	}
 
 	if _, ok := status.FromError(other); ok {
+		return other
+	}
+	if _, ok := other.(altiplaDoNotWrapper); ok {
 		return other
 	}
 
