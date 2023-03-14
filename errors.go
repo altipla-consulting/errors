@@ -11,12 +11,25 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var (
-	New    = errors.New
-	Is     = errors.Is
-	As     = errors.As
-	Unwrap = errors.Unwrap
-)
+// New calls errors.New.
+func New(text string) error {
+	return errors.New(text)
+}
+
+// Is calls errors.Is.
+func Is(err, target error) bool {
+	return errors.Is(err, target)
+}
+
+// As calls errors.As.
+func As(err error, target any) bool {
+	return errors.As(err, target)
+}
+
+// Unwrap calls errors.Unwrap.
+func Unwrap(err error) error {
+	return errors.Unwrap(err)
+}
 
 type altiplaError struct {
 	cause error
