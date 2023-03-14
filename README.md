@@ -1,35 +1,25 @@
 
 # errors
 
-[![GoDoc](https://godoc.org/github.com/altipla-consulting/errors?status.svg)](https://godoc.org/github.com/altipla-consulting/errors)
-[![Build Status](https://travis-ci.org/altipla-consulting/errors.svg?branch=master)](https://travis-ci.org/altipla-consulting/errors)
+[![Go Reference](https://pkg.go.dev/badge/github.com/altipla-consulting/errors.svg)](https://pkg.go.dev/github.com/altipla-consulting/errors)
 
-Custom library to annotate errors. Based on juju/errors.
+Custom library to annotate errors.
 
-> **WARNING:** We recommend using [juju/errors](https://github.com/juju/errors) instead. This version is modified to contain the subset of the features we need and will not be useful for the general public.
+> **WARNING:** This version is modified to contain the subset of the features we need and will not be useful for the general public.
 
 
-### Install
+## Install
 
 ```shell
 go get github.com/altipla-consulting/errors
 ```
 
 
-### Contributing
+## Contributing
 
-You can make pull requests or create issues in GitHub. Any code you send should be formatted using `gofmt`.
-
-
-### Running tests
-
-Run the tests
-
-```shell
-make test
-```
+You can make pull requests or create issues in GitHub. Any code you send should be formatted using `make gofmt`.
 
 
-### License
+## License
 
-[LGPL v3](LICENSE)
+[MIT License](LICENSE)
