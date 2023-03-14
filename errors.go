@@ -155,7 +155,7 @@ func Recover(p interface{}) error {
 	if err, ok := p.(error); ok {
 		return Trace(err)
 	}
-	return Errorf("panic: %v", p)
+	return internalWrapf(fmt.Errorf("panic: %v", p))
 }
 
 // LogFields returns fields to properly log an error.
