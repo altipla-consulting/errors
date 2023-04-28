@@ -40,10 +40,6 @@ func (e *altiplaError) Error() string {
 	return e.cause.Error()
 }
 
-func (e *altiplaError) Cause() error {
-	return e.cause
-}
-
 func (e *altiplaError) StackTrace() []uintptr {
 	return e.stack
 }
@@ -53,8 +49,7 @@ func (e *altiplaError) Unwrap() error {
 }
 
 func (e *altiplaError) writeStackTrace(w io.Writer) {
-	fmt.Fprintf(w, "%s\n\n", e.cause.Error())
-
+	fmt.Fprintf(w, "%s\n\n", e.Error())
 	for _, frame := range Frames(e) {
 		fmt.Fprintf(w, "%s\n", frame.Function)
 		fmt.Fprintf(w, "\t%s:%d\n", frame.File, frame.Line)
@@ -109,11 +104,7 @@ func Details(err error) string {
 	return strings.Join(result, " ")
 }
 
-func internalWrapf(err error) error {
-	if _, ok := err.(*altiplaError); ok {
-		return err
-	}
-
+func internalWrap(err error) error {
 	var buffer [256]uintptr
 	// 0 is the frame of Callers, 1 is us, 2 is the public wrapper, 3 is its caller.
 	n := runtime.Callers(3, buffer[:])
@@ -135,7 +126,7 @@ func internalWrapf(err error) error {
 // that Errorf is not suitable for storing in global variables. For
 // such errors, keep using errors.New.
 func Errorf(format string, a ...interface{}) error {
-	return internalWrapf(fmt.Errorf(format, a...))
+	return internalWrap(fmt.Errorf(format, a...))
 }
 
 // Trace annotates an error with a stacktrace.
@@ -147,16 +138,7 @@ func Trace(err error) error {
 	if err == nil {
 		return nil
 	}
-	return internalWrapf(err)
-}
-
-// Cause extracts the cause error of an altipla error. If err is not an altipla
-// error, err itself is returned.
-func Cause(err error) error {
-	if e, ok := err.(*altiplaError); ok {
-		return e.cause
-	}
-	return err
+	return internalWrap(err)
 }
 
 // Recover recovers from a panic in a defer. If there is no panic, Recover()
@@ -168,7 +150,7 @@ func Recover(p interface{}) error {
 	if err, ok := p.(error); ok {
 		return Trace(err)
 	}
-	return internalWrapf(fmt.Errorf("panic: %v", p))
+	return internalWrap(fmt.Errorf("panic: %v", p))
 }
 
 // LogFields returns fields to properly log an error.

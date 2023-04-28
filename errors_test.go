@@ -34,5 +34,13 @@ func bar() error {
 }
 
 func baz() error {
-	return Errorf("new error here!")
+	return New("new error here!")
+}
+
+func TestCauseRecoverWithUnwrap(t *testing.T) {
+	err := fmt.Errorf("example: %w", foo())
+
+	fmt.Printf("%q\n", Stack(err))
+	fmt.Printf("%T\n", Unwrap(err))
+	fmt.Printf("%q\n", Stack(Unwrap(err)))
 }
