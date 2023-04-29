@@ -32,6 +32,7 @@ func Unwrap(err error) error {
 
 type altiplaError struct {
 	cause  error
+	stack  []uintptr
 	frames []Frame
 }
 
@@ -45,6 +46,12 @@ func (e *altiplaError) Unwrap() error {
 
 func (e *altiplaError) Cause() error {
 	return e.cause
+}
+
+// StackTrace returns the stack pointers without calling runtime.CallersFrames.
+// It implements an interface that Sentry needs to extract the call.
+func (e *altiplaError) StackTrace() []uintptr {
+	return e.stack
 }
 
 // Frame stores information about a call stack frame.
@@ -78,6 +85,7 @@ func internalWrap(err error) error {
 	if prev := unwrapPrev(err); prev != nil {
 		return &altiplaError{
 			cause:  err,
+			stack:  prev.stack,
 			frames: prev.frames,
 		}
 	}
@@ -85,11 +93,11 @@ func internalWrap(err error) error {
 	var buffer [256]uintptr
 	// 0 is the frame of Callers, 1 is us, 2 is the public wrapper, 3 is its caller.
 	n := runtime.Callers(3, buffer[:])
-	callers := make([]uintptr, n)
-	copy(callers, buffer[:n])
+	stack := make([]uintptr, n)
+	copy(stack, buffer[:n])
 
 	var frames []Frame
-	iter := runtime.CallersFrames(callers)
+	iter := runtime.CallersFrames(stack)
 	for {
 		frame, more := iter.Next()
 		frames = append(frames, Frame{
@@ -103,6 +111,7 @@ func internalWrap(err error) error {
 	}
 	return &altiplaError{
 		cause:  err,
+		stack:  stack,
 		frames: frames,
 	}
 }
