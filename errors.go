@@ -43,6 +43,10 @@ func (e *altiplaError) Unwrap() error {
 	return e.cause
 }
 
+func (e *altiplaError) Cause() error {
+	return e.cause
+}
+
 // Frame stores information about a call stack frame.
 type Frame struct {
 	File     string
