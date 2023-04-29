@@ -17,22 +17,48 @@ func TestWrappingNativeStackedErrors(t *testing.T) {
 }
 
 func TestStackTraces(t *testing.T) {
-	err := Trace(foo())
+	err := wrapper1()
+	err = Trace(err)
 
-	require.Equal(t, err.Error(), "new error here!")
+	require.Equal(t, err.Error(), "added message: new error here!")
 
 	fmt.Println(Stack(err))
 	fmt.Println(Details(err))
 }
 
-func foo() error {
-	return Trace(bar())
+//go:noinline
+func wrapper1() error {
+	return Trace(wrapper2())
 }
 
-func bar() error {
-	return Trace(baz())
+//go:noinline
+func wrapper2() error {
+	if err := wrapper3(); err != nil {
+		return Trace(err)
+	}
+	return nil
 }
 
-func baz() error {
-	return Errorf("new error here!")
+//go:noinline
+func wrapper3() error {
+	return Errorf("added message: %w", wrapper4())
+}
+
+//go:noinline
+func wrapper4() error {
+	return Trace(wrapper5())
+}
+
+func wrapper5() error {
+	return Trace(unwrappedError())
+}
+
+//go:noinline
+func unwrappedError() error {
+	return New("new error here!")
+}
+
+func TestCauseRecoverWithUnwrap(t *testing.T) {
+	err := fmt.Errorf("example: %w", wrapper1())
+	fmt.Println(Stack(err))
 }

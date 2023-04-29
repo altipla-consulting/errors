@@ -2,9 +2,8 @@ package errors
 
 import (
 	"bytes"
-	"errors"
+	stderrors "errors"
 	"fmt"
-	"io"
 	"runtime"
 	"strings"
 
@@ -13,129 +12,118 @@ import (
 
 // New calls errors.New.
 func New(text string) error {
-	return errors.New(text)
+	return stderrors.New(text)
 }
 
 // Is calls errors.Is.
 func Is(err, target error) bool {
-	return errors.Is(err, target)
+	return stderrors.Is(err, target)
 }
 
 // As calls errors.As.
 func As(err error, target any) bool {
-	return errors.As(err, target)
+	return stderrors.As(err, target)
 }
 
 // Unwrap calls errors.Unwrap.
 func Unwrap(err error) error {
-	return errors.Unwrap(err)
+	return stderrors.Unwrap(err)
 }
 
 type altiplaError struct {
-	cause error
-	stack []uintptr
+	cause  error
+	frames []Frame
 }
 
 func (e *altiplaError) Error() string {
 	return e.cause.Error()
 }
 
-func (e *altiplaError) Cause() error {
-	return e.cause
-}
-
-func (e *altiplaError) StackTrace() []uintptr {
-	return e.stack
-}
-
 func (e *altiplaError) Unwrap() error {
 	return e.cause
 }
 
-func (e *altiplaError) writeStackTrace(w io.Writer) {
-	fmt.Fprintf(w, "%s\n\n", e.cause.Error())
-
-	for _, frame := range Frames(e) {
-		fmt.Fprintf(w, "%s\n", frame.Function)
-		fmt.Fprintf(w, "\t%s:%d\n", frame.File, frame.Line)
-	}
-}
-
-// A Frame represents a Frame in an altipla callstack.
+// Frame stores information about a call stack frame.
 type Frame struct {
 	File     string
 	Function string
 	Line     int
 }
 
-// Frames extracts all frames from an altipla error. If err is not an altipla error,
-// nil is returned.
+// Frames extracts all frames from the first altipla error of the chain.
 func Frames(err error) []Frame {
-	e, ok := err.(*altiplaError)
-	if !ok {
+	e := unwrapPrev(err)
+	if e == nil {
 		return nil
 	}
-
-	frames := make([]Frame, 0, 8)
-	iter := runtime.CallersFrames(e.stack)
-	for {
-		frame, ok := iter.Next()
-		if !ok {
-			break
-		}
-
-		frames = append(frames, Frame{
-			File:     frame.File,
-			Function: frame.Function,
-			Line:     frame.Line,
-		})
-	}
-	return frames
+	return e.frames
 }
 
 // Details returns the stacktrace in a succinct format to print a one-line error.
 func Details(err error) string {
-	e, ok := err.(*altiplaError)
-	if !ok {
-		return "{" + err.Error() + "}"
-	}
-
 	result := []string{
-		"{" + e.cause.Error() + "}",
+		"{" + err.Error() + "}",
 	}
-	for _, frame := range Frames(e) {
+	for _, frame := range Frames(err) {
 		result = append(result, fmt.Sprintf("{%s:%d:%s}", frame.File, frame.Line, frame.Function))
 	}
 	return strings.Join(result, " ")
 }
 
-func internalWrapf(err error) error {
-	if _, ok := err.(*altiplaError); ok {
-		return err
+func internalWrap(err error) error {
+	if prev := unwrapPrev(err); prev != nil {
+		return &altiplaError{
+			cause:  err,
+			frames: prev.frames,
+		}
 	}
 
 	var buffer [256]uintptr
 	// 0 is the frame of Callers, 1 is us, 2 is the public wrapper, 3 is its caller.
 	n := runtime.Callers(3, buffer[:])
-	frames := make([]uintptr, n)
-	copy(frames, buffer[:n])
+	callers := make([]uintptr, n)
+	copy(callers, buffer[:n])
 
+	var frames []Frame
+	iter := runtime.CallersFrames(callers)
+	for {
+		frame, more := iter.Next()
+		frames = append(frames, Frame{
+			File:     frame.File,
+			Function: frame.Function,
+			Line:     frame.Line,
+		})
+		if !more {
+			break
+		}
+	}
 	return &altiplaError{
-		cause: err,
-		stack: frames,
+		cause:  err,
+		frames: frames,
 	}
 }
 
-// Errorf creates a new error with a reason and a stacktrace.
+func unwrapPrev(err error) *altiplaError {
+	for err != nil {
+		e, ok := err.(*altiplaError)
+		if ok {
+			return e
+		}
+		err = Unwrap(err)
+	}
+	return nil
+}
+
+// Errorf creates a new error with a formatted message.
 //
 // Use Errorf in places where you would otherwise return an error using
-// fmt.Errorf or errors.New.
+// fmt.Errorf.
 //
 // Note that the result of Errorf includes a stacktrace. This means
 // that Errorf is not suitable for storing in global variables. For
 // such errors, keep using errors.New.
 func Errorf(format string, a ...interface{}) error {
-	return internalWrapf(fmt.Errorf(format, a...))
+	return internalWrap(fmt.Errorf(format, a...))
 }
 
 // Trace annotates an error with a stacktrace.
@@ -147,16 +135,7 @@ func Trace(err error) error {
 	if err == nil {
 		return nil
 	}
-	return internalWrapf(err)
-}
-
-// Cause extracts the cause error of an altipla error. If err is not an altipla
-// error, err itself is returned.
-func Cause(err error) error {
-	if e, ok := err.(*altiplaError); ok {
-		return e.cause
-	}
-	return err
+	return internalWrap(err)
 }
 
 // Recover recovers from a panic in a defer. If there is no panic, Recover()
@@ -168,7 +147,7 @@ func Recover(p interface{}) error {
 	if err, ok := p.(error); ok {
 		return Trace(err)
 	}
-	return internalWrapf(fmt.Errorf("panic: %v", p))
+	return internalWrap(fmt.Errorf("panic: %v", p))
 }
 
 // LogFields returns fields to properly log an error.
@@ -181,12 +160,16 @@ func LogFields(err error) log.Fields {
 
 // Stack returns the stacktrace of an error.
 func Stack(err error) string {
-	e, ok := err.(*altiplaError)
-	if !ok {
+	e := unwrapPrev(err)
+	if e == nil {
 		return err.Error()
 	}
 
 	var buf bytes.Buffer
-	e.writeStackTrace(&buf)
+	fmt.Fprintf(&buf, "%s\n\n", err.Error())
+	for _, frame := range Frames(e) {
+		fmt.Fprintf(&buf, "%s\n", frame.Function)
+		fmt.Fprintf(&buf, "\t%s:%d\n", frame.File, frame.Line)
+	}
 	return buf.String()
 }
