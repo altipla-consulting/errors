@@ -4,6 +4,7 @@ import (
 	"bytes"
 	stderrors "errors"
 	"fmt"
+	"log/slog"
 	"runtime"
 	"strings"
 
@@ -185,4 +186,9 @@ func Stack(err error) string {
 		fmt.Fprintf(&buf, "\t%s:%d\n", frame.File, frame.Line)
 	}
 	return buf.String()
+}
+
+// LogValue returns the standard log value to emit the error in a structured way.
+func LogValue(err error) slog.Value {
+	return slog.GroupValue(slog.String("error", err.Error()), slog.String("details", Details(err)))
 }
