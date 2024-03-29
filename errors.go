@@ -7,8 +7,6 @@ import (
 	"log/slog"
 	"runtime"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 // New calls errors.New.
@@ -162,14 +160,6 @@ func Recover(p interface{}) error {
 		return Trace(err)
 	}
 	return internalWrap(fmt.Errorf("panic: %v", p))
-}
-
-// LogFields returns fields to properly log an error.
-func LogFields(err error) log.Fields {
-	return log.Fields{
-		"error":   err.Error(),
-		"details": Details(err),
-	}
 }
 
 // Stack returns the stacktrace of an error.
