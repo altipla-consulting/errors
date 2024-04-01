@@ -29,6 +29,11 @@ func Unwrap(err error) error {
 	return stderrors.Unwrap(err)
 }
 
+// Join calls errors.Join.
+func Join(errs ...error) error {
+	return stderrors.Join(errs...)
+}
+
 type altiplaError struct {
 	cause  error
 	stack  []uintptr
