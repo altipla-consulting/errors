@@ -113,6 +113,7 @@ func internalWrap(err error) error {
 			break
 		}
 	}
+
 	return &altiplaError{
 		cause:  err,
 		stack:  stack,
@@ -155,6 +156,14 @@ func Trace(err error) error {
 	return internalWrap(err)
 }
 
+type panicError struct {
+	message string
+}
+
+func (e *panicError) Error() string {
+	return "panic: " + e.message
+}
+
 // Recover recovers from a panic in a defer. If there is no panic, Recover()
 // returns nil. To use, call error.Recover(recover()) and compare the result to nil.
 func Recover(p interface{}) error {
@@ -162,9 +171,9 @@ func Recover(p interface{}) error {
 		return nil
 	}
 	if err, ok := p.(error); ok {
-		return Trace(err)
+		return err
 	}
-	return internalWrap(fmt.Errorf("panic: %v", p))
+	return internalWrap(&panicError{message: fmt.Sprintf("%v", p)})
 }
 
 // Stack returns the stacktrace of an error.

@@ -62,3 +62,18 @@ func TestCauseRecoverWithUnwrap(t *testing.T) {
 	err := fmt.Errorf("example: %w", wrapper1())
 	fmt.Println(Stack(err))
 }
+
+func TestPanic(t *testing.T) {
+	defer func() {
+		fmt.Println(Stack(Recover(recover())))
+	}()
+	panic1()
+}
+
+func panic1() {
+	panic2()
+}
+
+func panic2() {
+	panic("value string")
+}
