@@ -171,7 +171,7 @@ func Recover(p interface{}) error {
 		return nil
 	}
 	if err, ok := p.(error); ok {
-		return err
+		return internalWrap(err)
 	}
 	return internalWrap(&panicError{message: fmt.Sprintf("%v", p)})
 }
